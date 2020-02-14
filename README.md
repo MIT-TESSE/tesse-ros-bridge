@@ -1,4 +1,4 @@
-# TESSE_interface
+# tesse-ros-bridge
 
 Provides a ROS interface to the TESSE Unity environment.
 
