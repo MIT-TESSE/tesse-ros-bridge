@@ -1,8 +1,6 @@
-# TESSE_interface
+# tesse-ros-bridge
 
-Provides a Python interface to the TESSE Unity environment.
-
-Use python 2.7 (to ease usage with ROS)
+Provides a ROS interface to the TESSE Unity environment.
 
 ## Commands
 Use the following commands when having the Unity window in focus:
@@ -14,12 +12,12 @@ Use the following commands when having the Unity window in focus:
 - 'left ctrl + left shift + g': enter spawn point capture mode for next respawn: press 'r' until you get to a nice location, then enter capture mode so that Unity restarts where you left. Note that in this mode, it'll capture a new point every second while moving around. You can stop capturing using 'left ctrl + left shift + g'.
 - ESC: to quit game.
 
-## Setup
+## Prerequisites
 
-To use this interface, clone then setup the `tesse` package.
+To use this interface, first clone then setup the `tesse` package.
 ```bash
-git clone git@github.mit.edu:TESS/TESSE_interface.git
-cd TESSE_interface/python
+git clone git@github.mit.edu:TESS/tesse-interface.git
+cd tesse-interface
 python setup.py develop
 ```
 
@@ -34,17 +32,12 @@ catkin init
 
 # Clone repo
 cd src
-git clone git@github.mit.edu:TESS/TESSE_interface.git
+git clone git@github.mit.edu:TESS/tesse-ros-bridge.git
 
 # Install dependencies from rosinstall file using wstool
 wstool init
-wstool merge TESSE_interface/ROS/tesse_ros_bridge/install/tesse_ros_bridge.rosinstall
+wstool merge tesse_ros_bridge/install/tesse_ros_bridge.rosinstall
 wstool update
-
-# Source TESSE non-ROS code
-cd TESSE_interface/python
-python setup.py develop
-cd ../..
 
 # Compile code
 catkin build
@@ -63,30 +56,15 @@ To run the ROS node:
 roslaunch tesse_ros_bridge tesse_bridge.launch
 ```
 
-See (python_demonstration.ipynb)[python_demonstration.ipynb] for example usage of the python package.
-
-You can also find Ben's test script at 
 
 ### Plotting
 
 You can use rviz for general visualization, we provide a configuration file:
 ```bash
-rviz -r ./ROS/tesse_ros_bridge/rviz/tesse_semantic_mesh.rviz
+rviz -r ./rviz/tesse_semantic_mesh.rviz
 ```
 
 You can also plot IMU and ground-truth odometry from the simulator using `rqt_multiplot` and the config file we provide:
 ```bash
 rqt_multiplot --multiplot-config:=rqt_multiplot/tesse.xml
 ```
-
-### Disclaimer
-
-Distribution authorized to U.S. Government agencies and their contractors. Other requests for this document shall be referred to the MIT Lincoln Laboratory Technology Office.
-
-This material is based upon work supported by the Under Secretary of Defense for Research and Engineering under Air Force Contract No. FA8702-15-D-0001. Any opinions, findings, conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the Under Secretary of Defense for Research and Engineering.
-
-© 2019 Massachusetts Institute of Technology.
-
-The software/firmware is provided to you on an As-Is basis
-
-Delivered to the U.S. Government with Unlimited Rights, as defined in DFARS Part 252.227-7013 or 7014 (Feb 2014). Notwithstanding any copyright notice, U.S. Government rights in this work are defined by DFARS 252.227-7013 or DFARS 252.227-7014 as detailed above. Use of this work other than as specifically authorized by the U.S. Government may violate any copyrights that exist in this work.
