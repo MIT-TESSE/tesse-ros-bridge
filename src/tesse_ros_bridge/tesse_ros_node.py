@@ -43,10 +43,10 @@ class TesseROSWrapper:
         self.step_port     = rospy.get_param("~step_port", 9005)
 
         # Set data to publish
-        publish_segmentation = rospy.get_param("~publish_segmentation", True)
-        publish_depth = rospy.get_param("~publish_depth", True)
-        self.publish_metadata = rospy.get_param("~publish_metadata", False)
-        self.publish_rgb_left = rospy.get_param("~publish_rgb_left", False)
+        publish_segmentation   = rospy.get_param("~publish_segmentation", True)
+        publish_depth          = rospy.get_param("~publish_depth", True)
+        self.publish_metadata  = rospy.get_param("~publish_metadata", False)
+        self.publish_rgb_left  = rospy.get_param("~publish_rgb_left", False)
         self.publish_rgb_right = rospy.get_param("~publish_rgb_right")
 
         # Camera parameters:
