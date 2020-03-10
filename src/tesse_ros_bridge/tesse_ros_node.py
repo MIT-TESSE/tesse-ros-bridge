@@ -100,13 +100,11 @@ class TesseROSWrapper:
 
         # setup optional publishers
         if publish_segmentation:
-            self.cameras.append(
-                (Camera.SEGMENTATION, Compression.OFF, Channels.THREE,  self.left_cam_frame_id))
+            self.cameras.append((Camera.SEGMENTATION, Compression.OFF, Channels.THREE,  self.left_cam_frame_id))
             self.img_pubs.append(rospy.Publisher("segmentation/image_raw", ImageMsg, queue_size=10))
 
         if publish_depth:
-            self.cameras.append(
-                (Camera.DEPTH, Compression.OFF, Channels.THREE,  self.left_cam_frame_id))
+            self.cameras.append((Camera.DEPTH, Compression.OFF, Channels.THREE,  self.left_cam_frame_id))
             self.img_pubs.append(rospy.Publisher("depth/image_raw",        ImageMsg, queue_size=10))
 
         if self.publish_metadata:
