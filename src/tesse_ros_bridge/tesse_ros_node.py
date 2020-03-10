@@ -43,7 +43,8 @@ class TesseROSWrapper:
         self.step_port     = rospy.get_param("~step_port", 9005)
 
         # Set data to publish
-        # true to publish one channel stereo images. Otherwise, publish as bgr8
+        # `publish_mono_stereo` is true to publish one channel stereo images
+        # Otherwise, publish as bgr8
         publish_mono_stereo    = rospy.get_param("~publish_mono_stereo", True)
         publish_segmentation   = rospy.get_param("~publish_segmentation", True)
         publish_depth          = rospy.get_param("~publish_depth", True)
@@ -124,7 +125,7 @@ class TesseROSWrapper:
 
         # If the clock updates faster than images can be queried in
         # step mode, the image callback is called twice on the same
-        # timestamp leading to duplicate published images.
+        # timestamp which leads to duplicate published images.
         # Track image timestamps to prevent this
         self.last_image_timestamp = None
 
@@ -266,9 +267,11 @@ class TesseROSWrapper:
                         data_response.images[i] * self.far_draw_dist,
                             'passthrough')
                 elif self.cameras[i][2] == Channels.SINGLE:
-                    img_msg = self.cv_bridge.cv2_to_imgmsg(data_response.images[i], 'mono8')
+                    img_msg = self.cv_bridge.cv2_to_imgmsg(
+                        data_response.images[i], 'mono8')
                 elif self.cameras[i][2] == Channels.THREE:
-                    img_msg = self.cv_bridge.cv2_to_imgmsg(data_response.images[i], 'bgr8')
+                    img_msg = self.cv_bridge.cv2_to_imgmsg(
+                        data_response.images[i], 'bgr8')
 
                 # Publish images to appropriate topic.
                 img_msg.header.frame_id = self.cameras[i][3]
