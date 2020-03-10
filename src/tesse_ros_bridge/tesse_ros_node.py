@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
 import numpy as np
-import copy
-
-import cv2
 
 import rospy
 import tf
@@ -20,7 +17,6 @@ from cv_bridge import CvBridge, CvBridgeError
 import tesse_ros_bridge.utils
 
 from tesse_ros_bridge.srv import SceneRequestService
-from tesse_ros_bridge import brh_T_blh
 
 from tesse.msgs import *
 from tesse.env import *
@@ -105,7 +101,7 @@ class TesseROSWrapper:
 
         if publish_depth:
             self.cameras.append((Camera.DEPTH, Compression.OFF, Channels.THREE,  self.left_cam_frame_id))
-            self.img_pubs.append(rospy.Publisher("depth/image_raw",        ImageMsg, queue_size=10))
+            self.img_pubs.append(rospy.Publisher("depth/image_raw", ImageMsg, queue_size=10))
 
         if self.publish_metadata:
             self.metadata_pub = rospy.Publisher("metadata", String)
@@ -546,8 +542,5 @@ class TesseROSWrapper:
 if __name__ == '__main__':
     rospy.init_node("TesseROSWrapper_node")
     node = TesseROSWrapper()
-    # import cProfile
-    # cProfile.run('TesseROSWrapper()',
-    #              '/home/marcus/TESS/ros_bridge_profile_3.cprof')
 
     node.spin()
