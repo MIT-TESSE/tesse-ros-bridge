@@ -90,7 +90,7 @@ class TesseROSWrapper:
         # To send images via ROS network and convert from/to ROS
         self.cv_bridge = CvBridge()
 
-        # always publish left and right cameras
+        # publish left and right cameras as mono8 or bgr8, depending on the given param
         n_stereo_channels = Channels.SINGLE if publish_mono_stereo else Channels.THREE
         self.cameras=[(Camera.RGB_LEFT,  Compression.OFF, n_stereo_channels, self.left_cam_frame_id),
                       (Camera.RGB_RIGHT, Compression.OFF, n_stereo_channels, self.right_cam_frame_id)]

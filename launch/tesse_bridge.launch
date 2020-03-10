@@ -24,8 +24,8 @@
   <arg name="near_draw_dist"        default="0.05"/>
   <arg name="far_draw_dist"         default="50.0"/>
 
-  <!-- Specify data to publish -->
-  <!-- Left and right greyscale are always published -->
+  <!-- Specify data to publish, left and right cameras are always enabled -->
+  <!-- `publish_mono_stereo` toggles between publishing as mono8 or bgr8 -->
   <arg name="publish_segmentation"  default="true"/>
   <arg name="publish_depth"         default="true"/>
   <arg name="publish_mono_stereo"   default="true"/>
