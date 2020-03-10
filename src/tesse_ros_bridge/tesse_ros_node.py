@@ -47,7 +47,7 @@ class TesseROSWrapper:
         publish_depth          = rospy.get_param("~publish_depth", True)
         self.publish_metadata  = rospy.get_param("~publish_metadata", False)
         self.publish_rgb_left  = rospy.get_param("~publish_rgb_left", False)
-        self.publish_rgb_right = rospy.get_param("~publish_rgb_right")
+        self.publish_rgb_right = rospy.get_param("~publish_rgb_right", False)
 
         # Camera parameters:
         self.camera_width    = rospy.get_param("~camera_width", 720)
