@@ -43,11 +43,11 @@ class TesseROSWrapper:
         self.step_port     = rospy.get_param("~step_port", 9005)
 
         # Set data to publish
+        # true to publish one channel stereo images. Otherwise, publish as bgr8
+        publish_mono_stereo    = rospy.get_param("~publish_mono_stereo", True)
         publish_segmentation   = rospy.get_param("~publish_segmentation", True)
         publish_depth          = rospy.get_param("~publish_depth", True)
         self.publish_metadata  = rospy.get_param("~publish_metadata", False)
-        self.publish_rgb_left  = rospy.get_param("~publish_rgb_left", False)
-        self.publish_rgb_right = rospy.get_param("~publish_rgb_right", False)
 
         # Camera parameters:
         self.camera_width    = rospy.get_param("~camera_width", 720)
@@ -90,13 +90,14 @@ class TesseROSWrapper:
         self.cv_bridge = CvBridge()
 
         # always publish left and right cameras
-        self.cameras=[(Camera.RGB_LEFT,  Compression.OFF, Channels.THREE, self.left_cam_frame_id),
-                      (Camera.RGB_RIGHT, Compression.OFF, Channels.THREE, self.right_cam_frame_id)]
+        n_stereo_channels = Channels.SINGLE if publish_mono_stereo else Channels.THREE
+        self.cameras=[(Camera.RGB_LEFT,  Compression.OFF, n_stereo_channels, self.left_cam_frame_id),
+                      (Camera.RGB_RIGHT, Compression.OFF, n_stereo_channels, self.right_cam_frame_id)]
 
         self.img_pubs = [rospy.Publisher("left_cam/image_raw", ImageMsg, queue_size=10),
                          rospy.Publisher("right_cam/image_raw", ImageMsg, queue_size=10)]
 
-        # optional publishers
+        # setup optional publishers
         if publish_segmentation:
             self.cameras.append(
                 (Camera.SEGMENTATION, Compression.OFF, Channels.THREE,  self.left_cam_frame_id))
@@ -106,12 +107,6 @@ class TesseROSWrapper:
             self.cameras.append(
                 (Camera.DEPTH, Compression.OFF, Channels.THREE,  self.left_cam_frame_id))
             self.img_pubs.append(rospy.Publisher("depth/image_raw",        ImageMsg, queue_size=10))
-
-        if self.publish_rgb_left:
-            self.rgb_left_pub = rospy.Publisher("left_cam_rgb/image_raw", ImageMsg, queue_size=10)
-
-        if self.publish_rgb_right:
-            self.rgb_right_pub = rospy.Publisher("right_cam_rgb/image_raw", ImageMsg, queue_size=10)
 
         if self.publish_metadata:
             self.metadata_pub = rospy.Publisher("metadata", String)
@@ -266,32 +261,19 @@ class TesseROSWrapper:
 
             # Process each image.
             for i in range(len(self.cameras)):
-                frame_id = self.cameras[i][3]
                 if self.cameras[i][0] == Camera.DEPTH:
-                    # TODO: Is this rescaling still required?
-                    scaled_depth_img = data_response.images[i] * self.far_draw_dist
-                    img_msg = self._get_img_message(scaled_depth_img, 'passthrough', frame_id, timestamp)
-                elif self.cameras[i][0] in (Camera.RGB_LEFT, Camera.RGB_RIGHT):  # publish RGB images as grayscale
-                    # TESSE sends back the first channel for a single channel
-                    # request of an RGB image. That's replicated here, but it could be
-                    # changed to a formal RGB to grayscale conversion.
-                    img_msg = self._get_img_message(data_response.images[i][..., 0], 'mono8', frame_id, timestamp)
+                    img_msg = self.cv_bridge.cv2_to_imgmsg(
+                        data_response.images[i] * self.far_draw_dist,
+                            'passthrough')
                 elif self.cameras[i][2] == Channels.SINGLE:
-                    img_msg = self._get_img_message(data_response.images[i], 'mono8', frame_id, timestamp)
+                    img_msg = self.cv_bridge.cv2_to_imgmsg(data_response.images[i], 'mono8')
                 elif self.cameras[i][2] == Channels.THREE:
-                    img_msg = self._get_img_message(data_response.images[i], 'rgb8', frame_id, timestamp)
+                    img_msg = self.cv_bridge.cv2_to_imgmsg(data_response.images[i], 'bgr8')
 
                 # Publish images to appropriate topic.
+                img_msg.header.frame_id = self.cameras[i][3]
+                img_msg.header.stamp = timestamp
                 self.img_pubs[i].publish(img_msg)
-
-                # publish RGB images if requested
-                if self.publish_rgb_left and self.cameras[i][0] == Camera.RGB_LEFT:
-                    img_msg = self._get_img_message(data_response.images[i], 'rgb8', frame_id, timestamp)
-                    self.rgb_left_pub.publish(img_msg)
-
-                if self.publish_rgb_right and self.cameras[i][0] == Camera.RGB_RIGHT:
-                    img_msg = self._get_img_message(data_response.images[i], 'rgb8', frame_id, timestamp)
-                    self.rgb_right_pub.publish(img_msg)
 
             # Publish both CameraInfo messages.
             self.cam_info_msg_left.header.stamp = timestamp
@@ -315,20 +297,6 @@ class TesseROSWrapper:
 
         except Exception as error:
                 print "TESSE_ROS_NODE: image_cb error: ", error
-
-    def _get_img_message(self, image, encoding, frame_id, timestamp):
-        """ Form a ROS image message (sensor_msgs/Image.msg) from the required data.
-
-            Args:
-                image: Numpy array containing and image.
-                encoding: Valid image encoding.
-                frame_id: String of the frame data is associated with.
-                timestamp: rospy.Time instance of data.
-        """
-        img_msg = self.cv_bridge.cv2_to_imgmsg(image, encoding)
-        img_msg.header.frame_id = frame_id
-        img_msg.header.stamp = timestamp
-        return img_msg
 
     def clock_cb(self, event):
         """ Publishes simulated clock time.

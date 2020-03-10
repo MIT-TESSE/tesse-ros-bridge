@@ -28,8 +28,7 @@
   <!-- Left and right greyscale are always published -->
   <arg name="publish_segmentation"  default="true"/>
   <arg name="publish_depth"         default="true"/>
-  <arg name="publish_rgb_left"      default="false"/>
-  <arg name="publish_rgb_right"     default="false"/>
+  <arg name="publish_mono_stereo"   default="true"/>
   <arg name="publish_metadata"      default="false"/>
 
   <!-- Sim arguments -->
@@ -85,8 +84,7 @@
     <!-- Data to publish -->
     <param name="publish_segmentation" value="$(arg publish_segmentation)"/>
     <param name="publish_depth"        value="$(arg publish_depth)"/>
-    <param name="publish_rgb_left"     value="$(arg publish_rgb_left)"/>
-    <param name="publish_rgb_right"    value="$(arg publish_rgb_right)"/>
+    <param name="publish_mono_stereo"  value="$(arg publish_mono_stereo)"/>
     <param name="publish_metadata"     value="$(arg publish_metadata)"/>
 
     <!-- Simulator and speed parameters -->
