@@ -36,7 +36,7 @@ git clone git@github.mit.edu:TESS/tesse-ros-bridge.git
 
 # Install dependencies from rosinstall file using wstool
 wstool init
-wstool merge tesse_ros_bridge/install/tesse_ros_bridge.rosinstall
+wstool merge tesse-ros-bridge/install/tesse_ros_bridge.rosinstall
 wstool update
 
 # Compile code
