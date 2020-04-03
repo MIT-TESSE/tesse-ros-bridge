@@ -19,7 +19,8 @@ from cv_bridge import CvBridge, CvBridgeError
 
 import tesse_ros_bridge.utils
 
-from tesse_ros_bridge.srv import SceneRequestService, ObjectSpawnRequestService
+from tesse_ros_bridge.srv import SceneRequestService, \
+     ObjectSpawnRequestService
 from tesse_ros_bridge import brh_T_blh
 
 from tesse.msgs import *
@@ -122,7 +123,8 @@ class TesseROSWrapper:
 
         # Change scene
         initial_scene = rospy.get_param("~initial_scene", 1)
-        self.rosservice_change_scene(SceneRequestService(initial_scene))
+        rospy.wait_for_service('scene_change_request')
+        self.change_scene(initial_scene)
 
         # Setup UdpListener.
         self.udp_listener = UdpListener(port=self.udp_port, rate=self.imu_rate)
@@ -416,14 +418,14 @@ class TesseROSWrapper:
         assert(right_cam_data['parameters']['height'] == self.camera_height)
         assert(right_cam_data['parameters']['width']  == self.camera_width)
 
-        self.cam_info_msg_left, self.cam_info_msg_right = \
+        cam_info_msg_left, cam_info_msg_right = \
             tesse_ros_bridge.utils.generate_camera_info(
                 left_cam_data, right_cam_data)
         
         # TODO(Toni) we should extend the above to get camera info for depth and segmentation!
         # for now, just copy paste from left cam...
-        self.cam_info_msg_segmentation = self.cam_info_msg_left
-        self.cam_info_msg_depth = self.cam_info_msg_left
+        cam_info_msg_segmentation = cam_info_msg_left
+        cam_info_msg_depth = cam_info_msg_left
 
         # TODO(Toni): do a check here by requesting all camera info and checking that it is
         # as the one requested!
@@ -442,10 +444,14 @@ class TesseROSWrapper:
         self.scene_request_service = rospy.Service("scene_change_request",
                                                     SceneRequestService,
                                                     self.rosservice_change_scene)
+        self.change_scene = rospy.ServiceProxy('scene_change_request',
+                                               SceneRequestService)
 
         self.object_spawn_service = rospy.Service("object_spawn_request",
                                                   ObjectSpawnRequestService,
                                                   self.rosservice_spawn_object)
+        self.spawn_object = rospy.ServiceProxy('object_spawn_request',
+                                               ObjectSpawnRequestService)
 
     def setup_collision(self, enable_collision):
         """ Enable/Disable collisions in Simulator. """
@@ -457,12 +463,13 @@ class TesseROSWrapper:
 
     def rosservice_change_scene(self, req):
         """ Change scene ID of simulator as a ROS service. """
-        # TODO(marcus): make this more elegant, like a None chek
         try:
-            return self.env.request(SceneRequest(req.id))
+            self.env.request(SceneRequest(req.id))
+            return True
         except Exception as e:
             print("Scene Change Error: ", e)
-            return False
+        
+        return False
 
     def rosservice_spawn_object(self, req):
         """ Spawn an object into the simulator as a ROS service. """
@@ -472,19 +479,25 @@ class TesseROSWrapper:
             2: ObjectType.SMPL_M_AUTO,
         }
 
-        if req.pose == Pose():
-            return self.env.request(SpawnObjectRequest(type_switcher[req.id],
-                                                       ObjectSpawnMethod.RANDOM))
-        else:
-            return self.env.request(SpawnObjectRequest(type_switcher[req.id],
-                                                       ObjectSpawnMethod.USER,
-                                                       req.pose.position.x,
-                                                       req.pose.position.y,
-                                                       req.pose.position.z,
-                                                       req.pose.orientation.x,
-                                                       req.pose.orientation.y,
-                                                       req.pose.orientation.z,
-                                                       req.pose.orientation.w))
+        try:
+            if req.pose == Pose():
+                self.env.request(SpawnObjectRequest(type_switcher[req.id],
+                                                        ObjectSpawnMethod.RANDOM))
+            else:
+                self.env.request(SpawnObjectRequest(type_switcher[req.id],
+                                                        ObjectSpawnMethod.USER,
+                                                        req.pose.position.x,
+                                                        req.pose.position.y,
+                                                        req.pose.position.z,
+                                                        req.pose.orientation.x,
+                                                        req.pose.orientation.y,
+                                                        req.pose.orientation.z,
+                                                        req.pose.orientation.w))
+            return True
+        except Exception as e:
+            print("Object Spawn Error: ", e)
+        
+        return False
 
     def publish_tf(self, cur_tf, timestamp):
         """ Publish the ground-truth transform to the TF tree.
