@@ -29,10 +29,6 @@ from tesse.utils import *
 class TesseROSWrapper:
 
     def __init__(self):
-        # Interface parameters:
-        self.teleop_enabled = rospy.get_param("~teleop", False)
-        self.step_mode_enabled = rospy.get_param("~enable_step_mode", False)
-
         # Networking parameters:
         self.client_ip     = rospy.get_param("~client_ip", "127.0.0.1")
         self.self_ip       = rospy.get_param("~self_ip", "127.0.0.1")
@@ -55,7 +51,6 @@ class TesseROSWrapper:
         assert(self.stereo_baseline > 0)
 
         # Simulator speed parameters:
-        self.use_sim        = rospy.get_param("/use_sim_time", False)
         self.speedup_factor = rospy.get_param("~speedup_factor", 1.0)
         assert(self.speedup_factor > 0.0)  # We are  dividing by this so > 0
         self.frame_rate     = rospy.get_param("~frame_rate", 20.0)
@@ -88,19 +83,17 @@ class TesseROSWrapper:
                          rospy.Publisher("segmentation/image_raw", ImageMsg, queue_size=10),
                          rospy.Publisher("depth/image_raw",        ImageMsg, queue_size=10)]
 
-        # TODO(Marcus): document what is this?
+        # Rendering distance for Unity cameras, taken from simulator
         self.far_draw_dist = None
 
         # Camera information members.
-        self.cam_info_left_pub = rospy.Publisher("left_cam/camera_info",   CameraInfo, queue_size=10)
-        self.cam_info_right_pub = rospy.Publisher("right_cam/camera_info", CameraInfo, queue_size=10)
-        self.cam_info_segmentation_pub = rospy.Publisher("segmentation/camera_info", CameraInfo, queue_size=10)
-        self.cam_info_depth_pub = rospy.Publisher("depth/camera_info", CameraInfo, queue_size=10)
+        # TODO(marcus): reformat like img_pubs
+        self.cam_info_pubs = [rospy.Publisher("left_cam/camera_info",     CameraInfo, queue_size=10),
+                              rospy.Publisher("right_cam/camera_info",    CameraInfo, queue_size=10),
+                              rospy.Publisher("segmentation/camera_info", CameraInfo, queue_size=10),
+                              rospy.Publisher("depth/camera_info",        CameraInfo, queue_size=10)]
 
-        self.cam_info_msg_left = None
-        self.cam_info_msg_right = None
-        self.cam_info_msg_segmentation = None
-        self.cam_info_msg_depth = None
+        self.cam_info_msgs = []
 
         # Setup ROS publishers
         self.imu_pub  = rospy.Publisher("imu", Imu, queue_size=10)
@@ -129,7 +122,7 @@ class TesseROSWrapper:
 
         # Change scene
         initial_scene = rospy.get_param("~initial_scene", 1)
-        self.change_scene(initial_scene)
+        self.rosservice_change_scene(SceneRequestService(initial_scene))
 
         # Setup UdpListener.
         self.udp_listener = UdpListener(port=self.udp_port, rate=self.imu_rate)
@@ -138,17 +131,7 @@ class TesseROSWrapper:
         # Simulated time requires that we constantly publish to '/clock'.
         self.clock_pub = rospy.Publisher("/clock", Clock, queue_size=10)
 
-        # Setup simulator step mode with teleop.
-        if self.step_mode_enabled:
-            self.env.send(SetFrameRate(self.frame_rate))
-
-        # Setup teleop command.
-        if self.teleop_enabled:
-            rospy.Subscriber("/cmd_vel", Twist, self.cmd_cb)
-
         print("TESSE_ROS_NODE: Initialization complete.")
-
-        self.last_cmd = Twist()
 
     def spin(self):
         """ Start timers and callbacks.
@@ -243,21 +226,18 @@ class TesseROSWrapper:
                     img_msg = self.cv_bridge.cv2_to_imgmsg(
                         data_response.images[i], 'rgb8')
 
+                # Sanity check resolutions.
+                assert(img_msg.width == self.cam_info_msgs[i].width)
+                assert(img_msg.height == self.cam_info_msgs[i].height)
+
                 # Publish images to appropriate topic.
                 img_msg.header.frame_id = self.cameras[i][3]
                 img_msg.header.stamp = timestamp
                 self.img_pubs[i].publish(img_msg)
 
-            # Publish both CameraInfo messages.
-            self.cam_info_msg_left.header.stamp = timestamp
-            self.cam_info_msg_right.header.stamp = timestamp
-            self.cam_info_msg_segmentation.header.stamp = timestamp
-            self.cam_info_msg_depth.header.stamp = timestamp
-
-            self.cam_info_left_pub.publish(self.cam_info_msg_left)
-            self.cam_info_right_pub.publish(self.cam_info_msg_right)
-            self.cam_info_segmentation_pub.publish(self.cam_info_msg_segmentation)
-            self.cam_info_depth_pub.publish(self.cam_info_msg_depth)
+                # Publish associated CameraInfo message.
+                self.cam_info_msgs[i].header.stamp = timestamp
+                self.cam_info_pubs[i].publish(self.cam_info_msgs[i])
 
             self.publish_tf(
                 tesse_ros_bridge.utils.get_enu_T_brh(metadata),
@@ -286,27 +266,6 @@ class TesseROSWrapper:
             self.clock_pub.publish(sim_time)
         except Exception as error:
             print "TESSE_ROS_NODE: clock_cb error: ", error
-
-    def cmd_cb(self, msg):
-        """ Listens to teleop force commands and sends to simulator.
-
-            Subscribed to the key_teleop node's output, the callback gets
-            Twist messages for both linear and angular 'velocities'. These
-            velocities are sent directly as forces and torques to the
-            simulator. Actual values for the incoming velocities are
-            determined in the launch file.
-
-            Args:
-                msg: A geometry_msgs/Twist message.
-        """
-        # force_x = msg.linear.x
-        # force_y = msg.linear.y
-        # torque_z = msg.angular.z
-        # self.env.send(StepWithForce(force_z=force_x, torque_y=torque_z,
-        #     force_x=force_y, duration=0))
-
-        # self.image_cb(None)
-        self.last_cmd = msg
 
     def setup_cameras(self):
         """ Initializes image-related members.
@@ -468,7 +427,10 @@ class TesseROSWrapper:
 
         # TODO(Toni): do a check here by requesting all camera info and checking that it is
         # as the one requested!
-        # Ok so let's check that the
+        self.cam_info_msgs = [cam_info_msg_left,
+                              cam_info_msg_right,
+                              cam_info_msg_segmentation,
+                              cam_info_msg_depth]
 
     def setup_ros_services(self):
         """ Setup ROS services related to the simulator.
@@ -492,9 +454,9 @@ class TesseROSWrapper:
         """ Change scene ID of simulator as a ROS service. """
         # TODO(marcus): make this more elegant, like a None chek
         try:
-            result = self.env.request(SceneRequest(req.id))
-            return True
-        except:
+            return self.env.request(SceneRequest(req.id))
+        except Exception as e:
+            print("Scene Change Error: ", e)
             return False
 
     def change_scene(self, scene_id):
@@ -521,8 +483,4 @@ class TesseROSWrapper:
 if __name__ == '__main__':
     rospy.init_node("TesseROSWrapper_node")
     node = TesseROSWrapper()
-    # import cProfile
-    # cProfile.run('TesseROSWrapper()',
-    #              '/home/marcus/TESS/ros_bridge_profile_3.cprof')
-
     node.spin()
