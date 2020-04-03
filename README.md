@@ -16,7 +16,7 @@ Use the following commands when having the Unity window in focus:
 
 To use this interface, first clone then setup the `tesse` package.
 ```bash
-git clone git@github.mit.edu:TESS/tesse-interface.git
+git clone git@github.com:MIT-TESSE/tesse-interface.git
 cd tesse-interface
 python setup.py develop
 ```
@@ -32,7 +32,7 @@ catkin init
 
 # Clone repo
 cd src
-git clone git@github.mit.edu:TESS/tesse-ros-bridge.git
+git clone git@github.com:MIT-TESSE/tesse-ros-bridge.git
 
 # Install dependencies from rosinstall file using wstool
 wstool init
