@@ -1,0 +1,9 @@
+## Object Spawn Request Service
+
+# Request fields
+int8 id  # integer id of object class
+geometry_msgs/Pose pose
+---
+
+# Response fields
+bool success  # true if object spawns without exception, false otw

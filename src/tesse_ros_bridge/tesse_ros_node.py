@@ -19,7 +19,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 import tesse_ros_bridge.utils
 
-from tesse_ros_bridge.srv import SceneRequestService
+from tesse_ros_bridge.srv import SceneRequestService, ObjectSpawnRequestService
 from tesse_ros_bridge import brh_T_blh
 
 from tesse.msgs import *
@@ -437,10 +437,15 @@ class TesseROSWrapper:
 
             These services include:
                 scene_change_request: change the scene_id of the simulator
+                object_spawn_request: spawn a prefab object into the scene
         """
         self.scene_request_service = rospy.Service("scene_change_request",
                                                     SceneRequestService,
                                                     self.rosservice_change_scene)
+
+        self.object_spawn_service = rospy.Service("object_spawn_request",
+                                                  ObjectSpawnRequestService,
+                                                  self.rosservice_spawn_object)
 
     def setup_collision(self, enable_collision):
         """ Enable/Disable collisions in Simulator. """
@@ -459,9 +464,27 @@ class TesseROSWrapper:
             print("Scene Change Error: ", e)
             return False
 
-    def change_scene(self, scene_id):
-        """ Change scene ID of simulator. """
-        return self.env.request(SceneRequest(scene_id))
+    def rosservice_spawn_object(self, req):
+        """ Spawn an object into the simulator as a ROS service. """
+        type_switcher = {
+            0: ObjectType.CUBE,
+            1: ObjectType.SMPL_F_AUTO,
+            2: ObjectType.SMPL_M_AUTO,
+        }
+
+        if req.pose == Pose():
+            return self.env.request(SpawnObjectRequest(type_switcher[req.id],
+                                                       ObjectSpawnMethod.RANDOM))
+        else:
+            return self.env.request(SpawnObjectRequest(type_switcher[req.id],
+                                                       ObjectSpawnMethod.USER,
+                                                       req.pose.position.x,
+                                                       req.pose.position.y,
+                                                       req.pose.position.z,
+                                                       req.pose.orientation.x,
+                                                       req.pose.orientation.y,
+                                                       req.pose.orientation.z,
+                                                       req.pose.orientation.w))
 
     def publish_tf(self, cur_tf, timestamp):
         """ Publish the ground-truth transform to the TF tree.
