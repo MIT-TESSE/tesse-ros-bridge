@@ -155,6 +155,11 @@ class TesseROSWrapper:
         # Simulated time requires that we constantly publish to '/clock'.
         self.clock_pub = rospy.Publisher("/clock", Clock, queue_size=10)
 
+        # Setup simulator step mode
+        step_mode_enabled = rospy.get_param("~enable_step_mode", False)
+        if step_mode_enabled:
+            self.env.send(SetFrameRate(self.frame_rate))
+
         print("TESSE_ROS_NODE: Initialization complete.")
 
     def spin(self):

@@ -6,6 +6,7 @@
 <launch>
   <arg name="ns"                    default="tesse"/>
   <arg name="publish_point_clouds"  default="false"/>
+  <arg name="enable_step_mode"      default="false"/>
 
   <!-- Network arguments -->
   <arg name="client_ip"             default="127.0.0.1"/>
@@ -56,6 +57,8 @@
     <remap from="right_cam/camera_info"    to="right_cam/camera_info"/>
     <remap from="segmentation/camera_info" to="segmentation/camera_info"/>
     <remap from="depth/camera_info"        to="depth/camera_info"/>
+
+    <param name="enable_step_mode" value="$(arg enable_step_mode)"/>
 
     <!-- Network Unity params -->
     <param name="client_ip"        value="$(arg client_ip)"/>
