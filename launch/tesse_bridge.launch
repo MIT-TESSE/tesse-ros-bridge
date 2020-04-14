@@ -6,6 +6,7 @@
 <launch>
   <arg name="ns"                    default="tesse"/>
   <arg name="publish_point_clouds"  default="false"/>
+  <arg name="enable_step_mode"      default="false"/>
 
   <!-- Network arguments -->
   <arg name="client_ip"             default="127.0.0.1"/>
@@ -17,6 +18,15 @@
   <arg name="width"                 default="720"/>
   <arg name="height"                default="480"/>
   <arg name="stereo_baseline"       default="0.10"/>
+  <arg name="near_draw_dist"        default="0.05"/>
+  <arg name="far_draw_dist"         default="50.0"/>
+
+  <!-- Specify data to publish, left and right cameras are always enabled -->
+  <!-- `publish_mono_stereo` toggles between publishing as mono8 or bgr8 -->
+  <arg name="publish_segmentation"  default="true"/>
+  <arg name="publish_depth"         default="true"/>
+  <arg name="publish_mono_stereo"   default="true"/>
+  <arg name="publish_metadata"      default="false"/>
 
   <!-- Sim arguments -->
   <arg name="use_sim_time"          default="true"/>
@@ -48,6 +58,8 @@
     <remap from="segmentation/camera_info" to="segmentation/camera_info"/>
     <remap from="depth/camera_info"        to="depth/camera_info"/>
 
+    <param name="enable_step_mode" value="$(arg enable_step_mode)"/>
+
     <!-- Network Unity params -->
     <param name="client_ip"        value="$(arg client_ip)"/>
     <param name="self_ip"          value="$(arg self_ip)"/>
@@ -62,6 +74,14 @@
     <param name="camera_width"         value="$(arg width)"/>
     <param name="camera_height"        value="$(arg height)"/>
     <param name="stereo_baseline"      value="$(arg stereo_baseline)"/>
+    <param name="near_draw_dist"       value="$(arg near_draw_dist)"/>
+    <param name="far_draw_dist"        value="$(arg far_draw_dist)"/>
+
+    <!-- Data to publish -->
+    <param name="publish_segmentation" value="$(arg publish_segmentation)"/>
+    <param name="publish_depth"        value="$(arg publish_depth)"/>
+    <param name="publish_mono_stereo"  value="$(arg publish_mono_stereo)"/>
+    <param name="publish_metadata"     value="$(arg publish_metadata)"/>
 
     <!-- Simulator and speed parameters -->
     <param name="speedup_factor"    value="$(arg speedup_factor)"/>
